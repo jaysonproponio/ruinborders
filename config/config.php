@@ -21,7 +21,6 @@ define('BASE_URL', $protocol . '://' . $host . $base_path);
 define('UPLOAD_PATH', __DIR__ . '/../uploads/');
 define('PROFILE_PIC_PATH', __DIR__ . '/../uploads/profiles/');
 define('RECEIPT_PATH', __DIR__ . '/../uploads/receipts/');
-define('SYSTEM_FAVICON_URL', BASE_URL . 'uploads/images/ruinborder_logo.png');
 
 // Gmail SMTP settings for receipt notifications.
 // You can edit these values directly or override them with RB_SMTP_* environment variables.
@@ -58,23 +57,6 @@ if (!file_exists(PROFILE_PIC_PATH)) {
 }
 if (!file_exists(RECEIPT_PATH)) {
     mkdir(RECEIPT_PATH, 0777, true);
-}
-
-if (PHP_SAPI !== 'cli' && !defined('SYSTEM_FAVICON_BOOTSTRAPPED')) {
-    ob_start(static function ($buffer) {
-        if (stripos($buffer, '<head') === false || stripos($buffer, 'rel="icon"') !== false) {
-            return $buffer;
-        }
-
-        $favicon_url = htmlspecialchars(SYSTEM_FAVICON_URL, ENT_QUOTES, 'UTF-8');
-        $favicon_tags = "\n    <link rel=\"icon\" type=\"image/png\" href=\"{$favicon_url}\">\n"
-            . "    <link rel=\"shortcut icon\" type=\"image/png\" href=\"{$favicon_url}\">\n"
-            . "    <link rel=\"apple-touch-icon\" href=\"{$favicon_url}\">\n";
-
-        return preg_replace('/<head(\s[^>]*)?>/i', '$0' . $favicon_tags, $buffer, 1);
-    });
-
-    define('SYSTEM_FAVICON_BOOTSTRAPPED', true);
 }
 
 // Include database connection
@@ -201,30 +183,6 @@ function logAdminAction($db, $adminId, $action, $details = '') {
     } catch (Throwable $e) {
         // Avoid hard failure on logging
         error_log('logAdminAction error: ' . $e->getMessage());
-    }
-}
-
-function ensurePaymentReceiptSchema($db) {
-    if (!($db instanceof PDO)) {
-        return;
-    }
-
-    $columns = [
-        'updated_at' => "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-        'user_comment' => "TEXT NULL",
-        'user_deleted_at' => "TIMESTAMP NULL DEFAULT NULL",
-        'admin_deleted_at' => "TIMESTAMP NULL DEFAULT NULL",
-    ];
-
-    foreach ($columns as $column => $definition) {
-        try {
-            $stmt = $db->query("SHOW COLUMNS FROM `payment_receipts` LIKE " . $db->quote($column));
-            if ($stmt && $stmt->rowCount() === 0) {
-                $db->exec("ALTER TABLE `payment_receipts` ADD COLUMN `$column` $definition");
-            }
-        } catch (Throwable $e) {
-            error_log('ensurePaymentReceiptSchema error: ' . $e->getMessage());
-        }
     }
 }
 
@@ -507,7 +465,6 @@ function notifyAdminsOfReceiptUpload($db, array $boarder, array $receipt) {
     $amount = number_format((float) ($receipt['amount'] ?? 0), 2);
     $room_number = trim((string) ($boarder['room_number'] ?? ''));
     $receipt_image = trim((string) ($receipt['receipt_image'] ?? ''));
-    $user_comment = trim((string) ($receipt['user_comment'] ?? ''));
     $uploaded_at = trim((string) ($receipt['created_at'] ?? date('Y-m-d H:i:s')));
     $receipt_url = rtrim(BASE_URL, '/') . '/uploads/receipts/' . rawurlencode($receipt_image);
 
@@ -517,7 +474,6 @@ function notifyAdminsOfReceiptUpload($db, array $boarder, array $receipt) {
     $safe_year = htmlspecialchars($year, ENT_QUOTES, 'UTF-8');
     $safe_room = htmlspecialchars($room_number !== '' ? $room_number : 'N/A', ENT_QUOTES, 'UTF-8');
     $safe_email = htmlspecialchars($boarder_email !== '' ? $boarder_email : 'N/A', ENT_QUOTES, 'UTF-8');
-    $safe_user_comment = htmlspecialchars($user_comment !== '' ? $user_comment : 'None', ENT_QUOTES, 'UTF-8');
     $safe_uploaded_at = htmlspecialchars($uploaded_at, ENT_QUOTES, 'UTF-8');
     $safe_receipt_url = htmlspecialchars($receipt_url, ENT_QUOTES, 'UTF-8');
 
@@ -530,7 +486,6 @@ function notifyAdminsOfReceiptUpload($db, array $boarder, array $receipt) {
             <tr><td><strong>Room</strong></td><td>' . $safe_room . '</td></tr>
             <tr><td><strong>Month</strong></td><td>' . $safe_month . ' ' . $safe_year . '</td></tr>
             <tr><td><strong>Amount</strong></td><td>P' . $amount . '</td></tr>
-            <tr><td><strong>Comment</strong></td><td>' . nl2br($safe_user_comment) . '</td></tr>
             <tr><td><strong>Uploaded At</strong></td><td>' . $safe_uploaded_at . '</td></tr>
         </table>
         <p>The uploaded receipt image is attached to this email.</p>
@@ -543,7 +498,6 @@ function notifyAdminsOfReceiptUpload($db, array $boarder, array $receipt) {
         . "Room: " . ($room_number !== '' ? $room_number : 'N/A') . "\n"
         . "Month: " . $month_label . ' ' . $year . "\n"
         . "Amount: P" . $amount . "\n"
-        . "Comment: " . ($user_comment !== '' ? $user_comment : 'None') . "\n"
         . "Uploaded At: " . $uploaded_at . "\n"
         . "Receipt URL: " . $receipt_url . "\n";
 
