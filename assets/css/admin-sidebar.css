@@ -1,0 +1,104 @@
+.sidebar {
+    --sidebar-panel-width: 250px;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 20px 16px !important;
+    overflow-y: visible;
+    overflow-x: hidden;
+}
+
+.sidebar-header {
+    flex-shrink: 0;
+    padding: 0 8px 24px !important;
+    margin-bottom: 12px !important;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-menu li {
+    margin-bottom: 0 !important;
+}
+
+.sidebar-menu a {
+    position: relative;
+    width: 100%;
+    margin-right: 0 !important;
+    padding-right: 52px !important;
+}
+
+.notification-badge {
+    top: 50% !important;
+    right: 16px !important;
+    transform: translateY(-50%);
+}
+
+.sidebar-profile {
+    position: relative !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    margin-top: auto;
+    padding: 20px 8px 6px !important;
+    border-top: 1px solid #e1e5e9;
+    background: transparent !important;
+    z-index: 20;
+}
+
+.dark-mode .sidebar-profile {
+    border-top-color: #333;
+    background: transparent !important;
+}
+
+.profile-info {
+    position: relative;
+    z-index: 2;
+}
+
+.profile-dropdown {
+    position: fixed !important;
+    left: 24px !important;
+    right: auto !important;
+    bottom: 96px !important;
+    top: auto !important;
+    width: calc(var(--sidebar-panel-width) - 32px) !important;
+    min-width: 0 !important;
+    max-height: min(280px, 45vh);
+    overflow-y: auto !important;
+    z-index: 30 !important;
+    pointer-events: none;
+}
+
+.profile-dropdown.show {
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        --sidebar-panel-width: min(280px, 82vw);
+        width: min(280px, 82vw) !important;
+        padding-top: 72px !important;
+    }
+
+    .profile-dropdown {
+        left: 24px !important;
+        bottom: 86px !important;
+        width: calc(var(--sidebar-panel-width) - 32px) !important;
+        max-height: min(240px, 40vh);
+    }
+
+    .main-content {
+        padding-top: 84px !important;
+    }
+}
